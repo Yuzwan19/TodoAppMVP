@@ -1,4 +1,4 @@
-package com.izx.firstapp;
+package com.izx.firstapp.adapter;
 
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
@@ -6,13 +6,14 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
-import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.izx.firstapp.R;
 import com.izx.firstapp.rest.CRUDtodo;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class TodoAdapter extends RecyclerView.Adapter<TodoAdapter.ViewHolder> {
@@ -31,8 +32,8 @@ public class TodoAdapter extends RecyclerView.Adapter<TodoAdapter.ViewHolder> {
         }
     }
 
-    public TodoAdapter(List<String> todolist) {
-        todoList = todolist;
+    public TodoAdapter() {
+        todoList = new ArrayList<>();
     }
 
     public void addNewTodo(String s) {

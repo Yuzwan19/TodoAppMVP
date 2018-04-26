@@ -1,42 +1,36 @@
 package com.izx.firstapp;
 
-import android.app.ProgressDialog;
-import android.content.Context;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.DividerItemDecoration;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
-import android.util.Log;
 import android.view.View;
 import android.view.animation.AnimationUtils;
 import android.view.animation.LayoutAnimationController;
 import android.widget.EditText;
 import android.widget.ImageButton;
+import android.widget.ProgressBar;
+import android.widget.Toast;
 
-import com.google.gson.Gson;
+import com.izx.firstapp.adapter.TodoAdapter;
 import com.izx.firstapp.pojo.TodoModel;
-import com.izx.firstapp.rest.ApiClient;
-import com.izx.firstapp.rest.ApiInterface;
 import com.izx.firstapp.rest.CRUDtodo;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Response;
-
-public class TodoActivity extends AppCompatActivity implements View.OnClickListener {
+public class TodoActivity extends AppCompatActivity implements View.OnClickListener, TodoView {
 
     private String TAG = TodoActivity.class.getSimpleName();
     EditText edtTodo;
     RecyclerView rvTodo;
     ImageButton btnTodo;
-    CRUDtodo cruDtodo;
+    TodoPresenter todoPresenter;
     LinearLayoutManager mLayoutManager;
     DividerItemDecoration mDividerItemDecoration;
     TodoAdapter mAdapter;
+    ProgressBar progressBar;
 
 
     @Override
@@ -50,71 +44,67 @@ public class TodoActivity extends AppCompatActivity implements View.OnClickListe
         edtTodo = findViewById(R.id.edt_add);
         btnTodo = findViewById(R.id.btn_add);
         rvTodo = findViewById(R.id.rv_todo);
+        progressBar = findViewById(R.id.progress);
         mLayoutManager = new LinearLayoutManager(this);
         mLayoutManager.setReverseLayout(true);
         mLayoutManager.setStackFromEnd(true);
         rvTodo.setLayoutManager(mLayoutManager);
+        todoPresenter = new TodoPresenter(this);
+        todoPresenter.getTodoList();
+        btnTodo.setOnClickListener(this);
+    }
+
+    @Override
+    public void initAdapter(List<TodoModel> list) {
+        mAdapter = new TodoAdapter();
+        for (int i = 0; i < list.size(); i++) {
+            mAdapter.addNewTodo(list.get(i).getTitle());
+        }
+        rvTodo.setAdapter(mAdapter);
+    }
+
+    @Override
+    public void setDividerDecoration() {
         mDividerItemDecoration = new DividerItemDecoration(rvTodo.getContext(),
                 mLayoutManager.getOrientation());
         rvTodo.addItemDecoration(mDividerItemDecoration);
+    }
 
+    @Override
+    public void setAnimation() {
         int resId = R.anim.layout_animation_fall_down;
         LayoutAnimationController animation = AnimationUtils.loadLayoutAnimation(this, resId);
         rvTodo.setLayoutAnimation(animation);
-
-        List<String> toDo = new ArrayList<>();
-        mAdapter = new TodoAdapter(toDo);
-        rvTodo.setAdapter(mAdapter);
-
-        btnTodo.setOnClickListener(this);
-        cruDtodo = new CRUDtodo();
-        cruDtodo.getTodoList(mAdapter);
     }
 
-    private void getTodoList() {
-        final ProgressDialog progressDialog = new ProgressDialog(this);
-        progressDialog.setMessage("Loading...");
-        progressDialog.show();
-        ApiInterface apiInterface = ApiClient.getClient().create(ApiInterface.class);
-        Call<List<TodoModel>> call = apiInterface.getTodoList();
-        call.enqueue(new Callback<List<TodoModel>>() {
-            @Override
-            public void onResponse(Call<List<TodoModel>> call, Response<List<TodoModel>> response) {
-                for (int i = 0; i < response.body().size(); i++) {
-                    mAdapter.addNewTodo(response.body().get(i).getTitle());
-                }
-                progressDialog.dismiss();
-
-            }
-
-            @Override
-            public void onFailure(Call<List<TodoModel>> call, Throwable t) {
-                Log.e(TAG, "onFailure: ", t);
-            }
-        });
+    @Override
+    public void showLoading() {
+        progressBar.setVisibility(View.VISIBLE);
     }
 
-    public void postTodo(String data) {
-        ApiInterface apiInterface = ApiClient.getClient().create(ApiInterface.class);
-        Call<TodoModel> call = apiInterface.postData(data);
-        call.enqueue(new Callback<TodoModel>() {
-            @Override
-            public void onResponse(Call<TodoModel> call, Response<TodoModel> response) {
-                Log.d(TAG, "onResponse: " + new Gson().toJson(response));
-            }
+    @Override
+    public void dismissLoading() {
+        progressBar.setVisibility(View.GONE);
+    }
 
-            @Override
-            public void onFailure(Call<TodoModel> call, Throwable t) {
-                Log.e(TAG, "onFailure: ", t);
-            }
-        });
+    @Override
+    public void onDataFailed(String message) {
+        Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
+    }
+
+    @Override
+    public void showErrorInput() {
+        Toast.makeText(this, "Please do not empty", Toast.LENGTH_SHORT).show();
     }
 
     @Override
     public void onClick(View v) {
+        if(todoPresenter.validateInput(edtTodo.getText().toString())) return;
         mAdapter.clear();
-        cruDtodo.postTodo(edtTodo.getText().toString());
-        cruDtodo.getTodoList(mAdapter);
+        todoPresenter.postTodo(edtTodo.getText().toString());
+        todoPresenter.getTodoList();
     }
+
+
 
 }
